@@ -22,7 +22,7 @@ WINDOW *console1_box;
 WINDOW *console2_box;
 
 WINDOW *console1;
-//WINDOW *console2;
+WINDOW *console2;
 
 //void testy();
 
@@ -66,7 +66,7 @@ int main() {
 	init_curses();
 	if (has_colors() == FALSE) {
 		endwin();
-		printf("Your terminal does not support color\n");
+		printf("Your terminal does not support colors! Exiting.\n");
 		exit(1);
 	}
 
@@ -96,12 +96,12 @@ int main() {
 
 	startx += COLS/2;
 
-	/*
+	
 	console2 = create_window_nobox(HEIGHT - 2, WIDTH - 2, starty, startx);
-	scrollok(console2, TRUE);
-	idlok(console2, TRUE);
-	wsetscrreg(console2, 1, HEIGHT - 2);
-	*/
+	//scrollok(console2, TRUE);
+	//idlok(console2, TRUE);
+	//wsetscrreg(console2, 1, HEIGHT - 2);
+	
 
 	//Deal with color:
 	start_color();
@@ -113,9 +113,10 @@ int main() {
 
 	wattron(console1, COLOR_PAIR(1) | A_BOLD);
 	//wattron(console2, COLOR_PAIR(3) | A_BOLD);
-
+	wprintw(console1, "Hello, World!\n");
+	wprintw(console2, "Hello, World!\n");
 	wrefresh(console1);
-	//wrefresh(console2);
+	wrefresh(console2);
 
 	int rv = 0; //for storing select return value
 	int prev_curs_x, prev_curs_y; //for detecting backspaces
@@ -199,6 +200,7 @@ int main() {
 }
 void exit_properly() {
 	delwin(console1);
+	delwin(console2);
 	delwin(console1_box);
 	delwin(console2_box);
 	endwin();

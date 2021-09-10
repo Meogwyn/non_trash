@@ -137,9 +137,6 @@ void draw_div_boxes(struct div_disp *input) {
 void free_stuff(struct div_disp *input) {
 	for(int i = 0; i < input->div_num_y; i++) {
 		for(int k = 0; k < input->div_num_x; k++) {
-			char *error = (char *) malloc(25* sizeof(char));
-			sprintf(error, "%d, %d\n", i, k);
-			log_error(error);
 			free(input->box_coords_yx[i][k]);
 			wclear(input->microsoft[input->div_num_x * i + k]);
 			wrefresh(input->microsoft[input->div_num_x * i + k]);
