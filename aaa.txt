@@ -1,0 +1,149 @@
+==22737== Memcheck, a memory error detector
+==22737== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==22737== Using Valgrind-3.17.0 and LibVEX; rerun with -h for copyright info
+==22737== Command: ./main
+==22737== Parent PID: 22725
+==22737== 
+==22737== Conditional jump or move depends on uninitialised value(s)
+==22737==    at 0x48447C8: strlen (vg_replace_strmem.c:469)
+==22737==    by 0x4952FD7: __vfprintf_internal (in /usr/lib/libc-2.33.so)
+==22737==    by 0x4963F89: __vsnprintf_internal (in /usr/lib/libc-2.33.so)
+==22737==    by 0x48A2445: _nc_printf_string_sp (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x489BA92: vw_printw (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x489BDD7: mvwprintw (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x10B012: print_div_byte (func.c:44)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737==  Uninitialised value was created by a heap allocation
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B127: convert_byte_to_str (func.c:61)
+==22737==    by 0x10AE44: print_div_byte (func.c:33)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737== 
+==22737== Conditional jump or move depends on uninitialised value(s)
+==22737==    at 0x4892DA3: werase (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x4891109: wclear (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x10B6C2: free_stuff (func.c:144)
+==22737==    by 0x10BD2D: div_reinit (func.c:284)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737==  Uninitialised value was created by a heap allocation
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B222: div_init (func.c:89)
+==22737==    by 0x10A92B: main (main.c:133)
+==22737== 
+==22737== Conditional jump or move depends on uninitialised value(s)
+==22737==    at 0x48B5873: _nc_screen_of (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x489C49E: wrefresh (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x10B6F0: free_stuff (func.c:145)
+==22737==    by 0x10BD2D: div_reinit (func.c:284)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737==  Uninitialised value was created by a heap allocation
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B222: div_init (func.c:89)
+==22737==    by 0x10A92B: main (main.c:133)
+==22737== 
+==22737== Conditional jump or move depends on uninitialised value(s)
+==22737==    at 0x489C4A2: wrefresh (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x10B6F0: free_stuff (func.c:145)
+==22737==    by 0x10BD2D: div_reinit (func.c:284)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737==  Uninitialised value was created by a heap allocation
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B222: div_init (func.c:89)
+==22737==    by 0x10A92B: main (main.c:133)
+==22737== 
+==22737== Conditional jump or move depends on uninitialised value(s)
+==22737==    at 0x4892C33: delwin (in /usr/lib/libncursesw.so.6.2)
+==22737==    by 0x10B71E: free_stuff (func.c:146)
+==22737==    by 0x10BD2D: div_reinit (func.c:284)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737==  Uninitialised value was created by a heap allocation
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B222: div_init (func.c:89)
+==22737==    by 0x10A92B: main (main.c:133)
+==22737== 
+==22737== Invalid read of size 8
+==22737==    at 0x10AE80: print_div_byte (func.c:35)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737==  Address 0x4b57d78 is 24 bytes before a block of size 32 alloc'd
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== Invalid read of size 8
+==22737==    at 0x10AECC: print_div_byte (func.c:36)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737==  Address 0x4b57d78 is 24 bytes before a block of size 32 alloc'd
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== Invalid read of size 8
+==22737==    at 0x10AF3A: print_div_byte (func.c:37)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737==  Address 0x4b57d78 is 24 bytes before a block of size 32 alloc'd
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== Invalid read of size 8
+==22737==    at 0x10AF98: print_div_byte (func.c:42)
+==22737==    by 0x10AA85: main (main.c:159)
+==22737==  Address 0x4b57d78 is 24 bytes before a block of size 32 alloc'd
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== 
+==22737== HEAP SUMMARY:
+==22737==     in use at exit: 483,970 bytes in 799 blocks
+==22737==   total heap usage: 3,361 allocs, 2,562 frees, 1,179,382 bytes allocated
+==22737== 
+==22737== 32 bytes in 1 blocks are definitely lost in loss record 8 of 54
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10A92B: main (main.c:133)
+==22737== 
+==22737== 32 bytes in 1 blocks are definitely lost in loss record 9 of 54
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B267: div_init (func.c:95)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== 447 bytes in 8 blocks are definitely lost in loss record 33 of 54
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B2DF: div_init (func.c:105)
+==22737==    by 0x10BD41: div_reinit (func.c:286)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== 8,250 bytes in 330 blocks are definitely lost in loss record 49 of 54
+==22737==    at 0x483E7C5: malloc (vg_replace_malloc.c:380)
+==22737==    by 0x10B638: free_stuff (func.c:140)
+==22737==    by 0x10BD2D: div_reinit (func.c:284)
+==22737==    by 0x10BBC8: interpret (func.c:241)
+==22737==    by 0x10ACAE: main (main.c:187)
+==22737== 
+==22737== LEAK SUMMARY:
+==22737==    definitely lost: 8,761 bytes in 340 blocks
+==22737==    indirectly lost: 0 bytes in 0 blocks
+==22737==      possibly lost: 0 bytes in 0 blocks
+==22737==    still reachable: 475,209 bytes in 459 blocks
+==22737==         suppressed: 0 bytes in 0 blocks
+==22737== Reachable blocks (those to which a pointer was found) are not shown.
+==22737== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==22737== 
+==22737== For lists of detected and suppressed errors, rerun with: -s
+==22737== ERROR SUMMARY: 18 errors from 13 contexts (suppressed: 0 from 0)
