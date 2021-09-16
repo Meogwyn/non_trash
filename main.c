@@ -35,7 +35,7 @@ int main() {
 	if(errfile < 0) {
 		fprintf(stderr, "lol ");
 		fprintf(stderr, "error: %d, %s\n", errno, strerror(errno));
-		exit(errno);
+		//exit(errno);
 	}
 	
 	//some preliminary config
@@ -52,7 +52,7 @@ int main() {
 
 	if(serial_port < 0) {
 		fprintf(stderr, "error: %d, %s\n", errno, strerror(errno));
-		exit(errno);
+		//exit(errno);
 	}
 	struct termios tty;
 	if(tcgetattr(serial_port, &tty) != 0) {
