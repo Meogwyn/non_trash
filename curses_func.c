@@ -2,19 +2,67 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include "header.h"
 #include <sys/select.h>
+#include "curses_func.h"
 
 extern struct div_disp boxes;
 extern int errfile;
 
-void init_curses() {
+struct consoles init_curses() {
+
+	struct consoles output;
 	initscr();
 	cbreak();
 	noecho();
-
-
 	refresh();
+
+	int startx = 0;
+	int starty = 0;
+	char *user_input = (char *) calloc(1024, sizeof(char));
+	int char_count = 0;
+
+	//Configure windows
+	
+
+	output.console1_box = create_window_box(HEIGHT, WIDTH, starty, startx);	
+	
+	startx = COLS/2;
+
+	output.console2_box = create_window_box(HEIGHT, WIDTH, starty, startx);
+	
+	startx = 1;
+	starty = 1;
+
+	output.console1 = create_window_nobox(HEIGHT - 2, WIDTH - 2, starty, startx);
+	scrollok(output.console1, TRUE);
+	idlok(output.console1, TRUE);
+	wsetscrreg(output.console1, 1, HEIGHT - 2);
+	nodelay(output.console1, TRUE);
+	curs_set(0);
+
+	startx += COLS/2;
+
+	
+	output.console2 = create_window_nobox(HEIGHT - 2, WIDTH - 2, starty, startx);
+	//scrollok(output.console2, TRUE);
+	//idlok(output.console2, TRUE);
+	//wsetscrreg(output.console2, 1, HEIGHT - 2);
+	
+
+	//Deal with color:
+	start_color();
+	
+	init_pair(1, COLOR_YELLOW, COLOR_BLACK); //left terminal user text
+	init_pair(2, COLOR_RED, COLOR_BLACK); //left terminal response text
+	init_pair(3, COLOR_GREEN, COLOR_BLACK); //right terminal readback text
+	init_pair(4, COLOR_CYAN, COLOR_BLACK); //right terminal readback text
+
+	wattron(output.console1, COLOR_PAIR(1) | A_BOLD);
+	//wattron(output.console2, COLOR_PAIR(3) | A_BOLD);
+	wprintw(output.console1, "Hello, World!\n");
+	wprintw(output.console2, "Hello, World!\n");
+	wrefresh(output.console1);
+	wrefresh(output.console2);
 }
 WINDOW *create_window_box(int height, int width, int starty, int startx) {
 	WINDOW *local_win;
@@ -31,31 +79,6 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx) {
 }
 void print_div_byte(WINDOW *console, struct div_disp *input, int a) {
 	char *str = convert_byte_to_str(a);
-
-	wattroff(input->microsoft[input->print_pos == 0 ? input->div - 1 : input->print_pos - 1], A_REVERSE);
-	wattron(input->microsoft[input->print_pos == 0 ? input->div - 1 : input->print_pos - 1], COLOR_PAIR(4));
-	mvwprintw(
-			input->microsoft[(input->print_pos == 0 ? input->div - 1 : input->print_pos - 1)], 
-			1, 
-			1,
-			"BYTE %d", (input->print_pos == 0 ? input->div - 1 : input->print_pos - 1));
-	wrefresh(input->microsoft[input->print_pos == 0 ? input->div - 1 : input->print_pos - 1]);
-	wattron(input->microsoft[input->print_pos], COLOR_PAIR(3));
-	mvwprintw(
-			input->microsoft[input->print_pos], 
-			2, 
-			1,
-			"%s", str);
-	wattron(input->microsoft[input->print_pos], COLOR_PAIR(4) | A_REVERSE);
-	mvwprintw(
-			input->microsoft[input->print_pos], 
-			1, 
-			1,
-			"BYTE %d", input->print_pos);
-	wattroff(input->microsoft[input->print_pos], A_REVERSE);
-	free(str);
-	wrefresh(input->microsoft[input->print_pos]);
-	input->print_pos = (input->print_pos + 1 == input->div ? 0 : input->print_pos + 1);
 }
 char *convert_byte_to_str(int byte) {
 	char *output = (char *) malloc(9 * sizeof(char));
@@ -68,55 +91,64 @@ char *convert_byte_to_str(int byte) {
 	}
 	return output;
 }
-int check_allowed_char(char c) {
-	if(c < 32 && c != '\n') {
-		return 0; //not allowed
-	}
-	return 1; //allowed
-}
 
-struct div_disp div_init(int div) { 
-	int number = 0;
-	//function to initialize variables to do with div-ing
-	//and perhaps draw the boxes.
+struct div_disp create_div_disp(int div) 
+{ 
 	struct div_disp output;
 	output.div = div;
-	output.print_pos = 0; //reset printing position
+	output.print_pos = 0;/r
+	output.offset = 0;
 	
-	output.div_num_y = ((LINES - 2 * DIV_PADDING_Y - 1) / 4);
-	output.div_num_x = ((COLS/2 - 2 * DIV_PADDING_X - 1) / 10);
-	
-	output.microsoft = (WINDOW **) malloc(output.div_num_y * output.div_num_x * sizeof(WINDOW *));
-
-	
-	//allocation
-	output.box_coords_yx = (int ***) malloc(output.div_num_y * sizeof(int **));
-	for(int i = 0; i < output.div_num_y; i++) {
-		output.box_coords_yx[i] = (int **) malloc(output.div_num_x * sizeof(int *));
-		for(int k = 0; k < output.div_num_x; k++) {
-			output.box_coords_yx[i][k] = (int *) malloc(2 * sizeof(int));
-			if(i * output.div_num_x + k >= div) {
-				goto loop_end; //break out of both loops
-			}
-		}
+	output.val = (char *) malloc(div * sizeof(int));
+	for(int i = 0; i < output.div; i++) {
+		output.val[i] = NOT_INITIALIZED; //just outside reasonable range
 	}
-loop_end:
-
-	output.div_val = (char *) malloc(div * sizeof(char));
-
-	//setting values
-	for(int i = 0; i < output.div_num_y; i++) {
-		for(int k = 0; k < output.div_num_x ; k++) {
-			output.box_coords_yx[i][k][0] = DIV_PADDING_Y + 1 + 4*i;
-			//((LINES - 2*DIV_PADDING_Y - 2) * i) / div_num_y ;//y coordinate of boxes (k,i)
-			output.box_coords_yx[i][k][1] = (COLS / 2) + DIV_PADDING_X + 1 + 10*k; //x coordinate of boxes (k,i)
-			if(i * output.div_num_x + k >= div) {
-				return output;
-			}
-		}	
-	}
-	return output;
 }
+struct p_range get_p_boxes_range(struct div_disp boxes)
+{
+	//gets range of printable box indexes
+	struct p_range output;
+	output.lo_bound = boxes.offset;
+	output.hi_bound = boxes.offset + max_boxes(boxes) - 1;
+}
+int check_in_bounds(struct div_disp boxes, int index)
+{
+	struct p_range range = get_p_boxes_range(boxes);
+	if (index >= lo_bound && index <= hi_bound)
+		return 1; //in bounds
+	else
+		return 0; //out of bounds!
+}
+//ATTENTION! the following 2 functions now return the top left corner of the box
+//as opposed to the first character, as was the way in the previous implementation
+//(rip)
+int get_box_y(struct div_disp boxes, int box_no)
+{
+	if (!check_in_bounds(boxes, box_no)) {
+		return -1; //error!
+	}
+	return DIV_PADDING_Y + BOX_HEIGHT * (box_no - boxes.offset) / get_max_boxes_y();
+}	
+int get_box_x(struct div_disp boxes, int box_no)
+{
+	if (!check_in_bounds(boxes, box_no)) {
+		return -1; //error!
+	}
+	return DIV_PADDING_X + BOX_WIDTH * (box_no % get_max_boxes_x());
+}
+int max_boxes()
+{
+	return get_max_boxes_y() * get_max_boxes_x();
+}
+int get_max_boxes_y()
+{
+	return (LINES - 2 * DIV_PADDING_Y) / BOX_HEIGHT;
+}
+int get_max_boxes_x()
+{
+	return (COLS / 2 - 2 * DIV_PADDING_X) / BOX_WIDTH;
+}
+
 void draw_div_boxes(struct div_disp *input) {
 	int number = 0;
 	//drawing boxes
@@ -163,117 +195,6 @@ void print_byte(WINDOW *console, int byte, int print_point_y, int print_point_x)
 		}
 	}
 }
-/* DEPRECATED:
-void read_routine(WINDOW *write_window, int fd) {
-	unsigned int incoming_byte;
-	struct timeval timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 10;
-
-	fd_set set;
-	FD_ZERO(&set);
-	FD_SET(fd, &set);
-	if(select(8, &set, NULL, NULL, &timeout)) {
-		read(fd, &incoming_byte, 1);
-		wprintw(write_window, "%u\n", incoming_byte);
-		wrefresh(write_window);
-	}
-	return;
-}*/
-void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes) { //fd for serial port
-	if(!strcmp(input, "help")) {
-		wprintw(console, "Mini-terminal commands:\n");
-
-		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "put <byte0> <byte1> ...");
-		wattr_off(console, A_REVERSE, NULL);
-		
-		wprintw(console, " - attempt to write the specified bytes\n");
-		
-		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "clear [left|right]");
-		wattr_off(console, A_REVERSE, NULL);
-
-		wprintw(console, " - clear the left window\n");
-
-		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "div <d>");
-		wattr_off(console, A_REVERSE, NULL);
-
-		wprintw(console, "- divides input into <d> divisions\n");
-
-		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "quit/exit");
-		wattr_off(console, A_REVERSE, NULL);
-		
-		wprintw(console, "- close the program\n");
-
-		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "help");
-		wattr_off(console, A_REVERSE, NULL);
-
-		wprintw(console, " - display this help message\n");
-	}
-	else if(!strncmp(input, "clear", 5)) {
-		if(!strncmp(input + 6, "left", 4)) {
-			werase(console);
-			wrefresh(console);
-			return;
-		}	
-		else {
-			wprintw(console, "invalid args. See \"help\"");
-			return;
-		}
-	}
-	else if (!strcmp(input, "quit") || !strcmp(input, "exit")) {
-		exit_properly();
-	}
-	else if(!strncmp(input, "div ", 4)) {
-		int tempdiv = strtoul(input + 4, NULL, 10);
-		if(tempdiv == 0 || tempdiv > 64) {
-			wprintw(console, "invalid number of divs\n");
-			wrefresh(console);
-			return;
-		}
-		*boxes = div_reinit(boxes, tempdiv);
-	}	
-	else if (!strncmp(input, "put", 3)) {
-		char write_byte;
-		char confirm = 0;
-		input = strtok(input, " ");
-
-		input = strtok(NULL, " ");
-		while(input != NULL) {
-			
-			write_byte = strtoul(input, NULL, 2);
-			wprintw(console, "Gonna print byte %u\n", write_byte);
-			
-			/*
-			wprintw(console, "Gonna print byte %u. Confirm? (y/n)\n", write_byte);
-			while(1) {
-				confirm = wgetch(console);
-				if(confirm != ERR) {
-					if(confirm != 'y') {
-						wprintw(console, "Cancelled!\n");
-						return;
-					}
-					wprintw(console, "Confirmed!\n");
-					write(fd, &write_byte, 1);
-					break;
-				}
-				read_routine(console2, fd);
-			}
-			*/
-				
-			write(fd, &write_byte, 1);
-			input = strtok(NULL, " ");
-		}
-	}
-	else {
-		wprintw(console, "command %s unknown. try \"help\"\n", input);
-		return;
-	}
-}
 struct div_disp div_reinit(struct div_disp *input, int new_div) {
 	//free existing memory and reallocate
 	//probably inefficient af but I've done exactly fuck-all OS dev stuff 
@@ -284,13 +205,5 @@ struct div_disp div_reinit(struct div_disp *input, int new_div) {
 	draw_div_boxes(&output);
 	return output;
 }
-void destroy_window(WINDOW *window) {
-	box(window, ' ', ' ');
-	delwin(window);
-}
 void log_error(char *error) {
-	write(errfile, error, strlen(error));
-	
 }
-
-	

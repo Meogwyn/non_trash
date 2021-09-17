@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
-#include "serial_header.h"
+#include "serial_func.h"
 
 void configSerial(struct termios *tty, int *serial_port) { //the int is for serial port fd
 	tty->c_cflag &= ~PARENB; //clear the PARENB bit for no parity

@@ -10,7 +10,8 @@
 #include <termios.h>
 
 #include "header.h"
-#include "serial_header.h"
+#include "serial_func.h"
+#include "curses_func.h"
 
 #define WIDTH COLS/2
 #define HEIGHT LINES
@@ -26,20 +27,23 @@ WINDOW *console2;
 
 //void testy();
 
-struct div_disp boxes;
 int errfile;
+int serial_port;
 
 int main() {
 	//error logging
-	errfile = open("/home/danus/devel/arduino/interface/non_trash/errorfile", O_WRONLY);
+	char *current_dir = getcwd(NULL, 0);
+	char *errfile_path = (char *) malloc((strlen(current_dir) + 10) * sizeof(char));
+	sprintf(errfile_path, "%s/errorfile");
+	errfile = open(errfile_path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if(errfile < 0) {
 		fprintf(stderr, "lol ");
-		fprintf(stderr, "error: %d, %s\n", errno, strerror(errno));
+		fprintf(stderr, "error opening errorfile: %d, %s\n", errno, strerror(errno));
 		//exit(errno);
 	}
-	
+	free(current_dir);
+	free(errfile_path);
 	//some preliminary config
-	boxes.div = 1; //default div value
 	signal(SIGINT, &exit_properly); //make sigint take curses into account
 	signal(SIGSEGV, &exit_properly); //make sigint take curses into account
 
@@ -63,60 +67,17 @@ int main() {
 	tcflush(serial_port, TCIOFLUSH);
 	
 	//Here begins the curses section of the configuration
-	init_curses();
+	struct consoles ass = init_curses();
+	console1 = ass.console1;
+	console2 = ass.console2;
+	console1 = ass.console1;
+	console2_box = ass.console2_box;
+
 	if (has_colors() == FALSE) {
 		endwin();
 		printf("Your terminal does not support colors! Exiting.\n");
 		exit(1);
 	}
-
-	int startx = 0;
-	int starty = 0;
-	char *user_input = (char *) calloc(1024, sizeof(char));
-	int char_count = 0;
-
-	//Configure windows
-	
-
-	console1_box = create_window_box(HEIGHT, WIDTH, starty, startx);	
-	
-	startx = COLS/2;
-
-	console2_box = create_window_box(HEIGHT, WIDTH, starty, startx);
-	
-	startx = 1;
-	starty = 1;
-
-	console1 = create_window_nobox(HEIGHT - 2, WIDTH - 2, starty, startx);
-	scrollok(console1, TRUE);
-	idlok(console1, TRUE);
-	wsetscrreg(console1, 1, HEIGHT - 2);
-	nodelay(console1, TRUE);
-	curs_set(0);
-
-	startx += COLS/2;
-
-	
-	console2 = create_window_nobox(HEIGHT - 2, WIDTH - 2, starty, startx);
-	//scrollok(console2, TRUE);
-	//idlok(console2, TRUE);
-	//wsetscrreg(console2, 1, HEIGHT - 2);
-	
-
-	//Deal with color:
-	start_color();
-	
-	init_pair(1, COLOR_YELLOW, COLOR_BLACK); //left terminal user text
-	init_pair(2, COLOR_RED, COLOR_BLACK); //left terminal response text
-	init_pair(3, COLOR_GREEN, COLOR_BLACK); //right terminal readback text
-	init_pair(4, COLOR_CYAN, COLOR_BLACK); //right terminal readback text
-
-	wattron(console1, COLOR_PAIR(1) | A_BOLD);
-	//wattron(console2, COLOR_PAIR(3) | A_BOLD);
-	wprintw(console1, "Hello, World!\n");
-	wprintw(console2, "Hello, World!\n");
-	wrefresh(console1);
-	wrefresh(console2);
 
 	int rv = 0; //for storing select return value
 	int prev_curs_x, prev_curs_y; //for detecting backspaces
@@ -131,9 +92,12 @@ int main() {
 	wmove(console1, LINES - 2, 1);
 	//testy();
 	
-	boxes = div_init(10);
-	draw_div_boxes(&boxes);
+	struct div_disp boxes;
+	boxes = create_div_disp(10);
+	//draw_div_boxes(&boxes);
 
+	//re-implement whole next section!
+	//plus corresponding func.c bits
 	while(1) {
 		//error log file
 		//check if there is anything to be read:
@@ -157,7 +121,6 @@ int main() {
 			//print_byte(console2, incoming_byte, prev_curs_y, prev_curs_x);
 			//wprintw(console2, ", %u, %c", incoming_byte, incoming_byte);
 			//waddch(console2, '\n');
-			print_div_byte(boxes.microsoft[boxes.print_pos], &boxes, incoming_byte);
 		}
 
 		user_input[char_count] = wgetch(console1);

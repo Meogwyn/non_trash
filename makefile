@@ -1,8 +1,13 @@
-compile:
-	gcc main.c func.c serial_func.c -lncurses -o main
-valgr:debug
-	rm aaa.txt
-	touch aaa.txt
-	valgrind $(VFLAGS) --track-origins=yes --leak-check=full --log-file=aaa.txt ./main
-debug:
-	gcc $(CFLAGS) main.c func.c serial_func.c -lncurses -g -o main
+CFLAGS = -lncurses
+obj = main.o func.o curses_func.o serial_func.o
+
+.PHONY: clean
+
+main.o:header.h curses_func.h serial_func.h
+func.o:header.h
+curses_func.o:curses_func.h
+serial_func.o:serial_func.h
+
+
+clean:
+	-rm -v main $(obj) errorfile
