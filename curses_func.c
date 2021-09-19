@@ -85,7 +85,7 @@ void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a)
 {
 	input->val[input->print_pos] = a;
 	//handles conversion and prints to box
-	
+	bprint(convert_to_base(a, input->base));	
 	input->print_pos++;
 	return;
 }
@@ -150,10 +150,17 @@ struct div_disp create_div_disp(int div)
 	log_error("div value of struct:%d\n", output.div);
 	output.print_pos = 0;
 	output.offset = 0;
+	output.base = 10;
 	
 	output.val = (uint8_t *) malloc(div * sizeof(uint8_t));
 	return output;
 }
+/* Uncomment this when you implement the redraw functions cos we'll need 'em
+void change_base (int base, struct div_disp *input) 
+{
+	if(base != 2 ||
+	input->base = 
+}*/
 
 struct p_range get_p_boxes_range(struct div_disp boxes)
 {
@@ -203,7 +210,7 @@ int get_max_boxes_x()
 
 void draw_div_boxes(struct div_disp input, WINDOW *console) 
 {
-	int onscreen_boxes = (get_max_boxes_y() * get_max_boxes_x() < input.div) ? get_max_boxes_y() * get_max_boxes_x() : input.div;
+	int onscreen_boxes = (max_boxes() < input.div) ? max_boxes : input.div;
 	log_error("on-screen boxes:%d\n", onscreen_boxes);
 	for (int i = 0; i < onscreen_boxes; i++) {
 		log_error("printing box %d!\n", i);

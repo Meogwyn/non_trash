@@ -12,7 +12,7 @@ struct div_disp {
 	unsigned int print_pos; //the box_no we're printing to
 	unsigned int offset; //for scrolling. Represents box to be printed at top left
 	unsigned int NO_VAL_pos; //for tracking uninitialized values
-	//of console2
+	unsigned int base; //base of byte representations
 
 	uint8_t *val; //stores values of received bytes in unconverted form.
 	
@@ -41,6 +41,7 @@ void bprint(char *str, struct div_disp input, WINDOW *console, int box_no);
 char *convert_byte_to_str(uint8_t byte);
 struct div_disp create_div_disp(int div);
 void draw_div_boxes(struct div_disp input, WINDOW *console); //+
+void change_base(struct div_disp *input);
 void enbox(struct div_disp input, WINDOW *console, int box_no);
 void cool_enbox(struct div_disp input, WINDOW *console);
 void free_stuff(struct div_disp *input); //+
