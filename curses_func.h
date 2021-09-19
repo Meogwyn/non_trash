@@ -39,7 +39,9 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx);
 void print_div_byte(WINDOW *console, struct div_disp *input, int byte);//-
 char *convert_byte_to_str(int byte);
 struct div_disp create_div_disp(int div);
-void draw_div_boxes(struct div_disp *input); //+
+void draw_div_boxes(struct div_disp input, WINDOW *console); //+
+void enbox(struct div_disp input, WINDOW *console, int box_no);
+void cool_enbox(struct div_disp input, WINDOW *console);
 void free_stuff(struct div_disp *input); //+
 struct div_disp div_reinit(struct div_disp *input, int new_div); //+
 void log_error(char *format, ...);
@@ -50,6 +52,5 @@ int get_box_x(struct div_disp boxes, int box_no);
 int max_boxes();
 int get_max_boxes_y();
 int get_max_boxes_x();
-void draw_div_boxes(struct div_disp *input); //+
 void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes);
 void testy(WINDOW *console, struct div_disp boxes);

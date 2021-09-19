@@ -75,7 +75,6 @@ void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes) { /
 	}	
 	else if (!strncmp(input, "put", 3)) {
 		char write_byte;
-		char confirm = 0;
 		input = strtok(input, " ");
 
 		input = strtok(NULL, " ");

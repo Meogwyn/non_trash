@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include <locale.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,6 +14,7 @@ extern int errfile;
 struct consoles init_curses() {
 
 	struct consoles output;
+	setlocale(LC_ALL, "");
 	initscr();
 	cbreak();
 	noecho();
@@ -153,7 +155,51 @@ int get_max_boxes_x()
 	return (COLS / 2 - 2 * DIV_PADDING_X) / BOX_WIDTH;
 }
 
-void draw_div_boxes(struct div_disp *input) {
+void draw_div_boxes(struct div_disp input, WINDOW *console) 
+{
+	for (int i = 0; i < get_max_boxes_y() * get_max_boxes_x() && i < input.div; i++) {
+		enbox(input, console, i);
+	}
+}
+void enbox(struct div_disp boxes, WINDOW *console, int box_no)
+{
+	//we cannot use routines such as hline or box which would speed this up
+	//since box works with windows (and maybe sub-windows but I didn't know about
+	//this at the time) and xline routines use waddch which doesn't work for
+	//utf-8 characters, I think...
+	
+
+	//some utf-8 characters
+	//the letters t, b, l, r, s stand for top, bottom, left, right and side respectively
+	char *tl = "\xe2\x95\x94";
+	char *tr = "\xe2\x95\x97";
+	char *bl = "\xe2\x95\x9a";
+	char *br = "\xe2\x95\x9d";
+	char *ls = "\xe2\x95\x91";
+	char *rs = "\xe2\x95\x91";
+	char *ts = "\xe2\x95\x90";
+	char *bs = "\xe2\x95\x90";
+
+	//drawn in the same order as they were defined above
+	mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no), tl);
+	mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no) + BOX_WIDTH - 1, tr);
+	mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no), bl);
+	mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + BOX_WIDTH - 1, br);
+	for (int i = 1; i < BOX_HEIGHT - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + i, get_box_x(boxes, box_no), ls);
+	}
+	for (int i = 1; i < BOX_HEIGHT - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + i, get_box_x(boxes, box_no) + BOX_WIDTH - 1, rs);
+	}
+	for (int i = 1; i < BOX_WIDTH - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no) + i, ts);
+	}
+	for (int i = 1; i < BOX_WIDTH - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + i, bs);
+	}
+}
+void cool_enbox(struct div_disp boxes, WINDOW *console)
+{
 }
 void free_stuff(struct div_disp *input) {
 }
@@ -170,8 +216,10 @@ void log_error(char *format, ...)
 void testy(WINDOW *console, struct div_disp boxes)
 {
 	log_error("div: %d\n", boxes.div);
+	log_error("the const:%d", NCURSES_WIDECHAR);
 	for (int i = 0; i < boxes.div; i++) {
-		mvwaddch(console, get_box_y(boxes, i), get_box_x(boxes, i), 'a');
+		//mvwaddch(console, get_box_y(boxes, i) + 2, get_box_x(boxes, i) + 1, 8988);
+		draw_div_boxes(boxes, console);
 		wrefresh(console);
 		log_error("i:%d y:%d x:%d\n", i, get_box_y(boxes, i), get_box_x(boxes, i));
 	}
