@@ -1,3 +1,5 @@
+//obj files:
+*.o
 //test files:
 /test/*
 //backup files
