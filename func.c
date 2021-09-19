@@ -5,6 +5,10 @@
 #include "header.h"
 #include <sys/select.h>
 
+//functions to be added to interpret:
+//1. shift
+//2. base
+//
 extern struct div_disp boxes;
 extern int errfile;
 //void exit_properly(int ass);
@@ -27,7 +31,7 @@ void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes) { /
 		wprintw(console, " - attempt to write the specified bytes\n");
 		
 		wattr_on(console, A_REVERSE, NULL);
-		wprintw(console, "clear [left|right]");
+		wprintw(console, "clear");
 		wattr_off(console, A_REVERSE, NULL);
 
 		wprintw(console, " - clear the left window\n");
@@ -49,6 +53,18 @@ void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes) { /
 		wattr_off(console, A_REVERSE, NULL);
 
 		wprintw(console, " - display this help message\n");
+
+		wattr_on(console, A_REVERSE, NULL);
+		wprintw(console, "shift [-]<n>");
+		wattr_off(console, A_REVERSE, NULL);
+
+		wprintw(console, " - shift the byte array n bytes to the left (if with "-") or right\n");
+
+		wattr_on(console, A_REVERSE, NULL);
+		wprintw(console, "base [bin|oct|dec|hex]");
+		wattr_off(console, A_REVERSE, NULL);
+
+		wprintw(console, " - print received bytes in the specified base");
 	}
 	else if(!strncmp(input, "clear", 5)) {
 		if(!strncmp(input + 6, "left", 4)) {

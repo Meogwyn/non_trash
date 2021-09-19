@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <ncurses.h>
 #include <locale.h>
 #include <unistd.h>
@@ -60,7 +61,7 @@ struct consoles init_curses() {
 	init_pair(4, COLOR_CYAN, COLOR_BLACK); //right terminal readback text
 
 	wattron(output.console1, COLOR_PAIR(1) | A_BOLD);
-	//wattron(output.console2, COLOR_PAIR(3) | A_BOLD);
+	wattron(output.console2, COLOR_PAIR(3) | A_BOLD);
 	wprintw(output.console1, "Hello, World!\n");
 	wprintw(output.console2, "Hello, World!\n");
 	wrefresh(output.console1);
@@ -80,9 +81,56 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx) {
 	wrefresh(local_win);
 	return local_win;
 }
-void print_div_byte(WINDOW *console, struct div_disp *input, int a) {
+void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a) 
+{
+	input->val[input->print_pos] = a;
+	//handles conversion and prints to box
+	
+	input->print_pos++;
+	return;
 }
-char *convert_byte_to_str(int byte) {
+char *convert_to_base(uint8_t byte, int base)
+{
+	//I could implement a proper algo, but I am lazy af so I do it this shitty way
+	char *output; 
+
+	//0 - binary
+	//1 - octal
+	//2 - decimal
+	//3 - hex
+
+	switch (base) {
+		case 0:
+			//we actually gotta do work here
+			output = convert_byte_to_str(byte);
+			return output;
+		case 1:
+			asprintf(&output, "0q%o", byte);
+			return output;
+		case 2:
+			asprintf(&output, "%d", byte);
+			return output;
+		case 3:
+			asprintf(&output, "0x%x", byte);
+			return output;
+	}
+	log_error("...how did you get here?...\n");
+	return NULL;
+}
+void bprint(char *str, struct div_disp input, WINDOW *console, int box_no)
+{
+	if (!check_in_bounds(input, box_no)) {
+		log_error("Tried to write to box outside of printable range (p_range)");
+		return;
+	}
+	if (strlen(str) > BOX_WIDTH - 2) {
+		log_error("BOX_WIDTH exceeded when printing!\n");
+		bprint("ERROR", input, console, box_no); //recursion!
+		return;
+	}
+	mvwprintw(console, get_box_y(input, box_no) + 2, get_box_x(input, box_no) + 1, str);
+}
+char *convert_byte_to_str(uint8_t byte) {
 	char *output = (char *) malloc(9 * sizeof(char));
 	for(int i = 0; i < 8; i++) {
 		if(byte & (1 << (7 - i))) {
@@ -103,12 +151,10 @@ struct div_disp create_div_disp(int div)
 	output.print_pos = 0;
 	output.offset = 0;
 	
-	output.val = (int *) malloc(div * sizeof(int));
-	for (int i = 0; i < output.div; i++) {
-		output.val[i] = NOT_INITIALIZED; //just outside reasonable range
-	}
+	output.val = (uint8_t *) malloc(div * sizeof(uint8_t));
 	return output;
 }
+
 struct p_range get_p_boxes_range(struct div_disp boxes)
 {
 	//gets range of printable box indexes
@@ -157,9 +203,14 @@ int get_max_boxes_x()
 
 void draw_div_boxes(struct div_disp input, WINDOW *console) 
 {
-	for (int i = 0; i < get_max_boxes_y() * get_max_boxes_x() && i < input.div; i++) {
+	int onscreen_boxes = (get_max_boxes_y() * get_max_boxes_x() < input.div) ? get_max_boxes_y() * get_max_boxes_x() : input.div;
+	for (int i = 0; i < onscreen_boxes; i++) {
 		enbox(input, console, i);
 	}
+	//'initialize' all the values:
+	for (int i = 0; i < onscreen_boxes; i++) {
+		bprint("NO VALUE", input, console, i);
+	}	
 }
 void enbox(struct div_disp boxes, WINDOW *console, int box_no)
 {
@@ -217,13 +268,8 @@ void testy(WINDOW *console, struct div_disp boxes)
 {
 	log_error("div: %d\n", boxes.div);
 	log_error("the const:%d", NCURSES_WIDECHAR);
-	for (int i = 0; i < boxes.div; i++) {
-		//mvwaddch(console, get_box_y(boxes, i) + 2, get_box_x(boxes, i) + 1, 8988);
-		draw_div_boxes(boxes, console);
-		wrefresh(console);
-		log_error("i:%d y:%d x:%d\n", i, get_box_y(boxes, i), get_box_x(boxes, i));
-	}
-	log_error("end\n");
+	draw_div_boxes(boxes, console);
+	wrefresh(console);
 	while (1) {
 	}
 	return;

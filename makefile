@@ -14,7 +14,7 @@ serial_func.o:serial_func.h
 valgr:debug_comp
 	-rm -vf valgr_log.txt
 	touch valgr_log.txt
-	valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all --log-file=valgr_log.txt ./main
+	valgrind --track-origins=yes --leak-check=full --log-file=valgr_log.txt ./main
 
 debug_comp:clean
 	cc -g -c $(CFLAGS) -o main.o main.c 
@@ -23,4 +23,4 @@ debug_comp:clean
 	cc -g -c $(CFLAGS) -o curses_func.o curses_func.c 
 	cc -g $(CFLAGS) $(obj) -o main
 clean:
-	-rm -v main $(obj) errorfile
+	-rm -v main $(obj) errorfile valgr*

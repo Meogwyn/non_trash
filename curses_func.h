@@ -3,20 +3,19 @@
 #define DIV_PADDING_X 3
 #define WIDTH COLS/2
 #define HEIGHT LINES
-#define NOT_INITIALIZED 256
+//#define NOT_INITIALIZED 256
 #define BOX_HEIGHT 4
 #define BOX_WIDTH 10
 
 struct div_disp {
 	unsigned int div; //amount of divisions
-	unsigned int print_pos;
+	unsigned int print_pos; //the box_no we're printing to
 	unsigned int offset; //for scrolling. Represents box to be printed at top left
+	unsigned int NO_VAL_pos; //for tracking uninitialized values
 	//of console2
 
-	int *val;//for storing values, which we need for resizing the screen and stuff
-	//bear in mind that val stores the values in already-converted format
-	//hence we need to allocate 8 chars per div if in binary mode
-	//2 if in hex and 3 if in dec.
+	uint8_t *val; //stores values of received bytes in unconverted form.
+	
 };
 struct consoles {
 	WINDOW *console1;
@@ -36,8 +35,10 @@ struct p_range {
 struct consoles init_curses();
 WINDOW *create_window_box(int height, int width, int starty, int startx);
 WINDOW *create_window_nobox(int height, int width, int starty, int startx);
-void print_div_byte(WINDOW *console, struct div_disp *input, int byte);//-
-char *convert_byte_to_str(int byte);
+void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t byte);//-
+char *convert_to_base(uint8_t byte, int base);
+void bprint(char *str, struct div_disp input, WINDOW *console, int box_no);
+char *convert_byte_to_str(uint8_t byte);
 struct div_disp create_div_disp(int div);
 void draw_div_boxes(struct div_disp input, WINDOW *console); //+
 void enbox(struct div_disp input, WINDOW *console, int box_no);
