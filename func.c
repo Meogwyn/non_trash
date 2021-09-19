@@ -58,7 +58,7 @@ void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes) { /
 		wprintw(console, "shift [-]<n>");
 		wattr_off(console, A_REVERSE, NULL);
 
-		wprintw(console, " - shift the byte array n bytes to the left (if with "-") or right\n");
+		wprintw(console, " - shift the byte array n bytes to the left (if with \"-\") or right\n");
 
 		wattr_on(console, A_REVERSE, NULL);
 		wprintw(console, "base [bin|oct|dec|hex]");
