@@ -34,6 +34,6 @@ void configSerial(struct termios *tty, int *serial_port) { //the int is for seri
 
 	// Save tty settings, also checking for error
 	if (tcsetattr(*serial_port, TCSANOW, tty) != 0) {
-	    printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
+	    printf("error %i from tcsetattr: %s\n", errno, strerror(errno));
 	}
 }

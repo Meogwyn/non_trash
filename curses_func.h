@@ -13,7 +13,7 @@ struct div_disp {
 	unsigned int offset; //for scrolling. Represents box to be printed at top left
 	//of console2
 
-	char *val;//for storing values, which we need for resizing the screen and stuff
+	int *val;//for storing values, which we need for resizing the screen and stuff
 	//bear in mind that val stores the values in already-converted format
 	//hence we need to allocate 8 chars per div if in binary mode
 	//2 if in hex and 3 if in dec.
@@ -42,13 +42,14 @@ struct div_disp create_div_disp(int div);
 void draw_div_boxes(struct div_disp *input); //+
 void free_stuff(struct div_disp *input); //+
 struct div_disp div_reinit(struct div_disp *input, int new_div); //+
-void exit_properly(); //+
-void log_error(char *error);
+void log_error(char *format, ...);
 struct p_range get_p_boxes_range(struct div_disp boxes);
-int check_in_bounds(int index);
-int get_box_y(int box_no); 
-int get_box_x(int box_no);
+int check_in_bounds(struct div_disp boxes, int index);
+int get_box_y(struct div_disp boxes, int box_no); 
+int get_box_x(struct div_disp boxes, int box_no);
 int max_boxes();
 int get_max_boxes_y();
 int get_max_boxes_x();
 void draw_div_boxes(struct div_disp *input); //+
+void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes);
+void testy(WINDOW *console, struct div_disp boxes);

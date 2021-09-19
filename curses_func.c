@@ -3,7 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/select.h>
+#include <stdarg.h>
 #include "curses_func.h"
+
 
 extern struct div_disp boxes;
 extern int errfile;
@@ -18,8 +20,6 @@ struct consoles init_curses() {
 
 	int startx = 0;
 	int starty = 0;
-	char *user_input = (char *) calloc(1024, sizeof(char));
-	int char_count = 0;
 
 	//Configure windows
 	
@@ -63,6 +63,7 @@ struct consoles init_curses() {
 	wprintw(output.console2, "Hello, World!\n");
 	wrefresh(output.console1);
 	wrefresh(output.console2);
+	return output;
 }
 WINDOW *create_window_box(int height, int width, int starty, int startx) {
 	WINDOW *local_win;
@@ -78,12 +79,11 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx) {
 	return local_win;
 }
 void print_div_byte(WINDOW *console, struct div_disp *input, int a) {
-	char *str = convert_byte_to_str(a);
 }
 char *convert_byte_to_str(int byte) {
 	char *output = (char *) malloc(9 * sizeof(char));
 	for(int i = 0; i < 8; i++) {
-		if(byte & (1 << 7 - i)) {
+		if(byte & (1 << (7 - i))) {
 			output[i] = '1';
 			continue;
 		}
@@ -95,14 +95,17 @@ char *convert_byte_to_str(int byte) {
 struct div_disp create_div_disp(int div) 
 { 
 	struct div_disp output;
+	log_error("div when creating:%d\n", div);
 	output.div = div;
-	output.print_pos = 0;/r
+	log_error("div value of struct:%d\n", output.div);
+	output.print_pos = 0;
 	output.offset = 0;
 	
-	output.val = (char *) malloc(div * sizeof(int));
-	for(int i = 0; i < output.div; i++) {
+	output.val = (int *) malloc(div * sizeof(int));
+	for (int i = 0; i < output.div; i++) {
 		output.val[i] = NOT_INITIALIZED; //just outside reasonable range
 	}
+	return output;
 }
 struct p_range get_p_boxes_range(struct div_disp boxes)
 {
@@ -110,11 +113,12 @@ struct p_range get_p_boxes_range(struct div_disp boxes)
 	struct p_range output;
 	output.lo_bound = boxes.offset;
 	output.hi_bound = boxes.offset + max_boxes(boxes) - 1;
+	return output;
 }
 int check_in_bounds(struct div_disp boxes, int index)
 {
 	struct p_range range = get_p_boxes_range(boxes);
-	if (index >= lo_bound && index <= hi_bound)
+	if (index >= range.lo_bound && index <= range.hi_bound)
 		return 1; //in bounds
 	else
 		return 0; //out of bounds!
@@ -127,7 +131,7 @@ int get_box_y(struct div_disp boxes, int box_no)
 	if (!check_in_bounds(boxes, box_no)) {
 		return -1; //error!
 	}
-	return DIV_PADDING_Y + BOX_HEIGHT * (box_no - boxes.offset) / get_max_boxes_y();
+	return DIV_PADDING_Y + BOX_HEIGHT * ((box_no - boxes.offset) / get_max_boxes_y());
 }	
 int get_box_x(struct div_disp boxes, int box_no)
 {
@@ -150,60 +154,29 @@ int get_max_boxes_x()
 }
 
 void draw_div_boxes(struct div_disp *input) {
-	int number = 0;
-	//drawing boxes
-	for(int i = 0; i < input->div_num_y && number < input->div; i++) {
-
-		for(int k = 0; k < input->div_num_x && number < input->div; k++) {
-			input->microsoft[input->div_num_x * i + k] = create_window_box(4, 10, input->box_coords_yx[i][k][0], input->box_coords_yx[i][k][1]);
-			wattron(input->microsoft[input->div_num_x * i + k], COLOR_PAIR(4) | A_BOLD);
-			mvwprintw(input->microsoft[input->div_num_x * i + k], 1, 1, "Byte %d", input->div_num_x * i + k);
-			wattron(input->microsoft[input->div_num_x * i + k], COLOR_PAIR(3) | A_BOLD);
-
-			wrefresh(input->microsoft[input->div_num_x * i + k]);
-
-			number++;
-		}
-	}
 }
 void free_stuff(struct div_disp *input) {
-	for(int i = 0; i < input->div_num_y; i++) {
-		for(int k = 0; k < input->div_num_x; k++) {
-			free(input->box_coords_yx[i][k]);
-			wclear(input->microsoft[input->div_num_x * i + k]);
-			wrefresh(input->microsoft[input->div_num_x * i + k]);
-			delwin(input->microsoft[input->div_num_x * i + k]);//I think this leaves 1 unfreed but eh
-			if((input->div_num_x) * i + k >= input->div) {
-				goto free_loop_end;
-			}
-		}
-		free(input->box_coords_yx[i]);
-	}
-free_loop_end:
-	free(input->box_coords_yx);
-	free(input->microsoft);
-}
-
-void print_byte(WINDOW *console, int byte, int print_point_y, int print_point_x) {
-	wmove(console, print_point_y, print_point_x);
-	for(int i = 0; i < 8; i++) {
-		if(byte & (1 << 7 -i)) {
-			waddch(console, '1');
-		}
-		else {
-			waddch(console, '0');
-		}
-	}
 }
 struct div_disp div_reinit(struct div_disp *input, int new_div) {
-	//free existing memory and reallocate
-	//probably inefficient af but I've done exactly fuck-all OS dev stuff 
-	//so I don't know
-	free_stuff(input);
-	struct div_disp output;
-	output = div_init(new_div);
-	draw_div_boxes(&output);
-	return output;
 }
-void log_error(char *error) {
+void log_error(char *format, ...) 
+{
+	va_list args;
+	va_start(args, format);
+	vdprintf(errfile, format, args);
+	va_end(args);
+	return;
+}
+void testy(WINDOW *console, struct div_disp boxes)
+{
+	log_error("div: %d\n", boxes.div);
+	for (int i = 0; i < boxes.div; i++) {
+		mvwaddch(console, get_box_y(boxes, i), get_box_x(boxes, i), 'a');
+		wrefresh(console);
+		log_error("i:%d y:%d x:%d\n", i, get_box_y(boxes, i), get_box_x(boxes, i));
+	}
+	log_error("end\n");
+	while (1) {
+	}
+	return;
 }

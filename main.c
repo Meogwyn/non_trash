@@ -13,11 +13,9 @@
 #include "serial_func.h"
 #include "curses_func.h"
 
-#define WIDTH COLS/2
-#define HEIGHT LINES
-
-
-
+//an important feature fot future implementation is to be able
+//to open the interface with no ports active. In other words, I'd need
+//to separate the interface itself from reading from ports as such.
 
 WINDOW *console1_box;
 WINDOW *console2_box;
@@ -25,31 +23,35 @@ WINDOW *console2_box;
 WINDOW *console1;
 WINDOW *console2;
 
-//void testy();
 
 int errfile;
 int serial_port;
 
+void exit_prep();
+void exit_properly_SIGINT();
+void exit_properly_SIGSEGV();
+
 int main() {
 	//error logging
 	char *current_dir = getcwd(NULL, 0);
-	char *errfile_path = (char *) malloc((strlen(current_dir) + 10) * sizeof(char));
-	sprintf(errfile_path, "%s/errorfile");
-	errfile = open(errfile_path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+	char *errfile_path = (char *) calloc((strlen(current_dir) + 11), sizeof(char));
+	sprintf(errfile_path, "%s/errorfile", current_dir);
+	errfile = open(errfile_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	log_error("Error file opened successfully!\n");
+	//write(errfile, "Error file opened successfully!\n", 33);
 	if(errfile < 0) {
-		fprintf(stderr, "lol ");
+		fprintf(stderr, "lol fd:%d\n", errfile);
 		fprintf(stderr, "error opening errorfile: %d, %s\n", errno, strerror(errno));
 		//exit(errno);
 	}
 	free(current_dir);
-	free(errfile_path);
-	//some preliminary config
-	signal(SIGINT, &exit_properly); //make sigint take curses into account
-	signal(SIGSEGV, &exit_properly); //make sigint take curses into account
+	//free(errfile_path);
 
 	//Configure serial communication:
+	char *user_input = (char *) calloc(1024, sizeof(char));
+	int char_count = 0;
 	int incoming_byte = 0;
-	int serial_port = open("/dev/ttyACM1", O_RDWR);
+	int serial_port = open("/dev/ttyACM0", O_RDWR);
 	struct timeval timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 10;
@@ -70,7 +72,7 @@ int main() {
 	struct consoles ass = init_curses();
 	console1 = ass.console1;
 	console2 = ass.console2;
-	console1 = ass.console1;
+	console1_box = ass.console1_box;
 	console2_box = ass.console2_box;
 
 	if (has_colors() == FALSE) {
@@ -80,24 +82,27 @@ int main() {
 	}
 
 	int rv = 0; //for storing select return value
-	int prev_curs_x, prev_curs_y; //for detecting backspaces
 	int curr_curs_x, curr_curs_y; //for detecting backspaces
-	int to_be_removed; //for storing number of chars to be removed after backspace
 
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(serial_port, &set);
+	
+	//some preliminary config
+	signal(SIGINT, &exit_properly_SIGINT); //make sigint take curses into account
+	signal(SIGSEGV, &exit_properly_SIGSEGV); //make sigint take curses into account
 
 
-	wmove(console1, LINES - 2, 1);
-	//testy();
+	//wmove(console1, LINES - 2, 1);
 	
 	struct div_disp boxes;
 	boxes = create_div_disp(10);
+	log_error("actual div value:%d\n", boxes.div);
 	//draw_div_boxes(&boxes);
 
 	//re-implement whole next section!
 	//plus corresponding func.c bits
+	testy(console2, boxes);
 	while(1) {
 		//error log file
 		//check if there is anything to be read:
@@ -161,29 +166,25 @@ int main() {
 	endwin();
 	return 0;
 }
-void exit_properly() {
+void exit_prep() {
 	delwin(console1);
 	delwin(console2);
 	delwin(console1_box);
 	delwin(console2_box);
+}
+void exit_properly_SIGINT() 
+{
+	exit_prep();	
 	endwin();
-	printf("segfault\n");
+	fprintf(stderr, "SIGINT\n");
+	fflush(stderr);
 	exit(0);
 }
-/*
-void testy() {
-	struct div_disp boxes;
-	boxes = div_init(10);
-	int number = 0;
-
-	for(int i = 0; i < boxes.div_num_y && number < boxes.div; i++) {
-
-		for(int k = 0; k < boxes.div_num_x && number < boxes.div; k++) {
-			mvwaddch(console2, boxes.box_coords_yx[i][k][0], boxes.box_coords_yx[i][k][1], 'a');
-			number++;
-		}
-	}
-	free_stuff(&boxes);
-	wgetch(console2);
-	exit_properly();
-}*/
+void exit_properly_SIGSEGV() 
+{
+	exit_prep();	
+	endwin();
+	printf("SIGSEGV\n");
+	fflush(stdout);
+	exit(-2);
+}
