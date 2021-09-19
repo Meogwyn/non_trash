@@ -179,7 +179,7 @@ int get_box_y(struct div_disp boxes, int box_no)
 	if (!check_in_bounds(boxes, box_no)) {
 		return -1; //error!
 	}
-	return DIV_PADDING_Y + BOX_HEIGHT * ((box_no - boxes.offset) / get_max_boxes_y());
+	return DIV_PADDING_Y + BOX_HEIGHT * ((box_no - boxes.offset) / get_max_boxes_x());
 }	
 int get_box_x(struct div_disp boxes, int box_no)
 {
@@ -204,7 +204,9 @@ int get_max_boxes_x()
 void draw_div_boxes(struct div_disp input, WINDOW *console) 
 {
 	int onscreen_boxes = (get_max_boxes_y() * get_max_boxes_x() < input.div) ? get_max_boxes_y() * get_max_boxes_x() : input.div;
+	log_error("on-screen boxes:%d\n", onscreen_boxes);
 	for (int i = 0; i < onscreen_boxes; i++) {
+		log_error("printing box %d!\n", i);
 		enbox(input, console, i);
 	}
 	//'initialize' all the values:
@@ -214,6 +216,7 @@ void draw_div_boxes(struct div_disp input, WINDOW *console)
 }
 void enbox(struct div_disp boxes, WINDOW *console, int box_no)
 {
+	log_error("making box with coords %d,%d\n", get_box_y(boxes, box_no), get_box_x(boxes, box_no));
 	//we cannot use routines such as hline or box which would speed this up
 	//since box works with windows (and maybe sub-windows but I didn't know about
 	//this at the time) and xline routines use waddch which doesn't work for
