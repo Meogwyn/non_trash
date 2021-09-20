@@ -68,26 +68,29 @@ struct consoles init_curses() {
 	wrefresh(output.console2);
 	return output;
 }
-WINDOW *create_window_box(int height, int width, int starty, int startx) {
+WINDOW *create_window_box(int height, int width, int starty, int startx) 
+{
 	WINDOW *local_win;
 	local_win = newwin(height, width, starty, startx);
 	box(local_win, 0, 0);
 	wrefresh(local_win);
 	return local_win;
 }
-WINDOW *create_window_nobox(int height, int width, int starty, int startx) {
+WINDOW *create_window_nobox(int height, int width, int starty, int startx) 
+{
 	WINDOW *local_win;
 	local_win = newwin(height, width, starty, startx);
 	wrefresh(local_win);
 	return local_win;
 }
+//Prints a byte in a div box, handling conversion
 void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a) 
 {
+	log_error("now trying to print byte %d at print_pos %d\n", a, input->print_pos);
 	input->val[input->print_pos] = a;
 	//handles conversion and prints to box
-	bprint(convert_to_base(a, input->base));	
-	input->print_pos++;
-	return;
+	bprint(convert_to_base(a, input->base), *input, console, input->print_pos);	
+	input->print_pos = input->print_pos >= input->div - 1 ? 0 : input->print_pos + 1;
 }
 char *convert_to_base(uint8_t byte, int base)
 {
@@ -102,7 +105,7 @@ char *convert_to_base(uint8_t byte, int base)
 	switch (base) {
 		case 0:
 			//we actually gotta do work here
-			output = convert_byte_to_str(byte);
+			output = convert_to_base_two(byte);
 			return output;
 		case 1:
 			asprintf(&output, "0q%o", byte);
@@ -117,10 +120,11 @@ char *convert_to_base(uint8_t byte, int base)
 	log_error("...how did you get here?...\n");
 	return NULL;
 }
+//Does the actual printing
 void bprint(char *str, struct div_disp input, WINDOW *console, int box_no)
 {
 	if (!check_in_bounds(input, box_no)) {
-		log_error("Tried to write to box outside of printable range (p_range)");
+		log_error("Tried to write to box outside of printable range (p_range)!\n");
 		return;
 	}
 	if (strlen(str) > BOX_WIDTH - 2) {
@@ -129,8 +133,10 @@ void bprint(char *str, struct div_disp input, WINDOW *console, int box_no)
 		return;
 	}
 	mvwprintw(console, get_box_y(input, box_no) + 2, get_box_x(input, box_no) + 1, str);
+	wrefresh(console);
 }
-char *convert_byte_to_str(uint8_t byte) {
+char *convert_to_base_two(uint8_t byte) 
+{
 	char *output = (char *) malloc(9 * sizeof(char));
 	for(int i = 0; i < 8; i++) {
 		if(byte & (1 << (7 - i))) {
@@ -150,7 +156,7 @@ struct div_disp create_div_disp(int div)
 	log_error("div value of struct:%d\n", output.div);
 	output.print_pos = 0;
 	output.offset = 0;
-	output.base = 10;
+	output.base = 2;
 	
 	output.val = (uint8_t *) malloc(div * sizeof(uint8_t));
 	return output;
@@ -210,7 +216,7 @@ int get_max_boxes_x()
 
 void draw_div_boxes(struct div_disp input, WINDOW *console) 
 {
-	int onscreen_boxes = (max_boxes() < input.div) ? max_boxes : input.div;
+	int onscreen_boxes = (max_boxes() < input.div) ? max_boxes() : input.div;
 	log_error("on-screen boxes:%d\n", onscreen_boxes);
 	for (int i = 0; i < onscreen_boxes; i++) {
 		log_error("printing box %d!\n", i);
@@ -220,6 +226,7 @@ void draw_div_boxes(struct div_disp input, WINDOW *console)
 	for (int i = 0; i < onscreen_boxes; i++) {
 		bprint("NO VALUE", input, console, i);
 	}	
+	wrefresh(console);
 }
 void enbox(struct div_disp boxes, WINDOW *console, int box_no)
 {
@@ -259,8 +266,43 @@ void enbox(struct div_disp boxes, WINDOW *console, int box_no)
 		mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + i, bs);
 	}
 }
-void cool_enbox(struct div_disp boxes, WINDOW *console)
+void cool_enbox(struct div_disp boxes, WINDOW *console, int box_no)
 {
+	log_error("making box with coords %d,%d\n", get_box_y(boxes, box_no), get_box_x(boxes, box_no));
+	//we cannot use routines such as hline or box which would speed this up
+	//since box works with windows (and maybe sub-windows but I didn't know about
+	//this at the time) and xline routines use waddch which doesn't work for
+	//utf-8 characters, I think...
+	
+
+	//some utf-8 characters
+	//the letters t, b, l, r, s stand for top, bottom, left, right and side respectively
+	char *tl = "\u256d";
+	char *tr = "\u256e";
+	char *bl = "\u2570";
+	char *br = "\u256f";
+	char *ls = "\u2502";
+	char *rs = "\u2502";
+	char *ts = "\u2501";
+	char *bs = "\u2501";
+
+	//drawn in the same order as they were defined above
+	mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no), tl);
+	mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no) + BOX_WIDTH - 1, tr);
+	mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no), bl);
+	mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + BOX_WIDTH - 1, br);
+	for (int i = 1; i < BOX_HEIGHT - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + i, get_box_x(boxes, box_no), ls);
+	}
+	for (int i = 1; i < BOX_HEIGHT - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + i, get_box_x(boxes, box_no) + BOX_WIDTH - 1, rs);
+	}
+	for (int i = 1; i < BOX_WIDTH - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no), get_box_x(boxes, box_no) + i, ts);
+	}
+	for (int i = 1; i < BOX_WIDTH - 1; i++) {
+		mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + i, bs);
+	}
 }
 void free_stuff(struct div_disp *input) {
 }

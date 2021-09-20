@@ -97,12 +97,10 @@ int main() {
 	
 	struct div_disp boxes;
 	boxes = create_div_disp(10);
-	log_error("actual div value:%d\n", boxes.div);
-	//draw_div_boxes(&boxes);
+	draw_div_boxes(boxes, console2);
 
 	//re-implement whole next section!
 	//plus corresponding func.c bits
-	testy(console2, boxes);
 	while(1) {
 		//error log file
 		//check if there is anything to be read:
@@ -112,20 +110,8 @@ int main() {
 
 		if(rv) {
 			read(serial_port, &incoming_byte, 1);
-			
-			/*
-			for(int i = 0; i < 8; i++) {
-				if(incoming_byte & (1 << 7 - i)) {
-					waddch(console2, '1');
-				}
-				else {
-					waddch(console2, '0');
-				}
-			}*/
-			//getyx(console2, prev_curs_y, prev_curs_x);
-			//print_byte(console2, incoming_byte, prev_curs_y, prev_curs_x);
-			//wprintw(console2, ", %u, %c", incoming_byte, incoming_byte);
-			//waddch(console2, '\n');
+			log_error("caught byte %d!\n", incoming_byte);
+			print_div_byte(console2, &boxes, incoming_byte);
 		}
 
 		user_input[char_count] = wgetch(console1);

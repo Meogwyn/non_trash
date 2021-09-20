@@ -1,4 +1,4 @@
-CFLAGS = -lncurses -Wall
+CFLAGS = -lncurses -Wall -Os
 obj = main.o func.o curses_func.o serial_func.o
 
 .PHONY: clean
