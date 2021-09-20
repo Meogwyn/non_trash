@@ -1,5 +1,5 @@
 //obj files:
-*.o
+./*.o
 //test files:
 /test/*
 //backup files
