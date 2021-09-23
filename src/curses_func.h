@@ -11,7 +11,7 @@ struct div_disp {
 	unsigned int div; //amount of divisions
 	unsigned int print_pos; //the box_no we're printing to
 	unsigned int offset; //for scrolling. Represents box to be printed at top left
-	unsigned int NO_VAL_pos; //for tracking uninitialized values
+	unsigned int uinit_boxes; //number of uninitialized boxes remaining. 
 	unsigned int base : 2; //base of byte representations
 	unsigned int cool : 1;
 
@@ -47,9 +47,9 @@ struct p_range {
 
 void add_div_boxes(struct div_disp input, WINDOW *console, int n);
 void remove_div_boxes(struct div_disp input, WINDOW *console, int n);
-void redraw_div_boxes(); //To be made general enough to be useful for both \
-	     //handling the interrupt and changing the number of div boxes \
-	     //the latter should be the more complex one as it also involves changing \
+void redraw_div_boxes(); //To be made general enough to be useful for both 
+	     //handling the interrupt and changing the number of div boxes 
+	     //the latter should be the more complex one as it also involves changing 
 	     //the array
 
 

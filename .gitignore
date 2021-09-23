@@ -1,5 +1,8 @@
 //obj files:
-./*.o
+main.o
+func.o
+curses_func.o
+serial_func.o
 //test files:
 /test/*
 //backup files

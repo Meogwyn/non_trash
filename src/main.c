@@ -36,7 +36,7 @@ int main() {
 	char *current_dir = getcwd(NULL, 0);
 	char *errfile_path = (char *) calloc((strlen(current_dir) + 11), sizeof(char));
 	sprintf(errfile_path, "%s/errorfile", current_dir);
-	errfile = open(errfile_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	errfile = open(errfile_path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	log_error("Error file opened successfully!\n");
 	//write(errfile, "Error file opened successfully!\n", 33);
 	if(errfile < 0) {

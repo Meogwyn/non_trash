@@ -89,12 +89,21 @@ void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a)
 	log_error("now trying to print byte %d at print_pos %d\n", a, input->print_pos);
 	input->val[input->print_pos] = a;
 	//handles conversion and prints to box
+	if (input->uinit_boxes) {
+		log_error("Initializing box %d. %d uninitialized boxes remaining", input->print_pos, input->uinit_boxes);
+		input->uinit_boxes--; //one less to initialize
+		bprint("        ", *input, console, input->print_pos); //clear the box
+	}
 	bprint(convert_to_base(a, input->base), *input, console, input->print_pos);	
+
 	input->print_pos = input->print_pos >= input->div - 1 ? 0 : input->print_pos + 1;
 }
 char *convert_to_base(uint8_t byte, int base)
 {
 	//I could implement a proper algo, but I am lazy af so I do it this shitty way
+	
+	//Well actually... what's so shitty about this? I don't imagine
+	//using asprintf is so bad...
 	char *output; 
 
 	//0 - binary
@@ -155,6 +164,7 @@ struct div_disp create_div_disp(int div)
 	output.div = div;
 	log_error("div value of struct:%d\n", output.div);
 	output.print_pos = 0;
+	output.uinit_boxes = div; //all boxes uninitialized
 	output.offset = 0;
 	output.base = 2;
 	
