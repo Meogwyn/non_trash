@@ -86,7 +86,7 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx)
 //Prints a byte in a div box, handling conversion
 void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a) 
 {
-	log_error("now trying to print byte %d at print_pos %d\n", a, input->print_pos);
+	log_error("Now trying to print byte %d at print_pos %d\n", a, input->print_pos);
 	input->val[input->print_pos] = a;
 	//handles conversion and prints to box
 	if (input->uinit_boxes) {
@@ -97,6 +97,11 @@ void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a)
 	bprint(convert_to_base(a, input->base), *input, console, input->print_pos);	
 
 	input->print_pos = input->print_pos >= input->div - 1 ? 0 : input->print_pos + 1;
+}
+void div_realloc(struct div_disp *input, int new_div)
+{
+	int new_blockno = DIV_DISP_BLOCKSIZE * (new_div / DIV_DISP_BLOCKSIZE + 1);
+	input->val = realloc(input->val, new_blockno * DIV_DISP_BLOCKSIZE * sizeof(uint8_t));
 }
 char *convert_to_base(uint8_t byte, int base)
 {
@@ -110,6 +115,8 @@ char *convert_to_base(uint8_t byte, int base)
 	//1 - octal
 	//2 - decimal
 	//3 - hex
+	
+	//I guess this is where you'd use an enum in c++
 
 	switch (base) {
 		case 0:
@@ -168,7 +175,7 @@ struct div_disp create_div_disp(int div)
 	output.offset = 0;
 	output.base = 2;
 	
-	output.val = (uint8_t *) malloc(div * sizeof(uint8_t));
+	output.val = malloc(div * DIV_DISP_BLOCKSIZE * sizeof(uint8_t));
 	return output;
 }
 /* Uncomment this when you implement the redraw functions cos we'll need 'em
@@ -180,10 +187,12 @@ void change_base (int base, struct div_disp *input)
 
 struct p_range get_p_boxes_range(struct div_disp boxes)
 {
-	//gets range of printable box indexes
+	//gets range of printable box indexes in the div_disp struct.
+	//Keep in mind that the bounds are inclusive - the lo_bound and hi_bound
+	//correspond to the index of the lowest and highest printable boxes respectively.
 	struct p_range output;
 	output.lo_bound = boxes.offset;
-	output.hi_bound = boxes.offset + max_boxes(boxes) - 1;
+	output.hi_bound = boxes.div - boxes.offset > max_boxes(boxes) ? boxes.offset + max_boxes(boxes) - 1 : boxes.div - 1 - boxes.offset;
 	return output;
 }
 int check_in_bounds(struct div_disp boxes, int index)
@@ -226,7 +235,7 @@ int get_max_boxes_x()
 
 void draw_div_boxes(struct div_disp input, WINDOW *console) 
 {
-	int onscreen_boxes = (max_boxes() < input.div) ? max_boxes() : input.div;
+	int onscreen_boxes = get_p_box_no(input);
 	log_error("on-screen boxes:%d\n", onscreen_boxes);
 	for (int i = 0; i < onscreen_boxes; i++) {
 		log_error("printing box %d!\n", i);
@@ -237,6 +246,137 @@ void draw_div_boxes(struct div_disp input, WINDOW *console)
 		bprint("NO VALUE", input, console, i);
 	}	
 	wrefresh(console);
+}
+void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console)
+{
+	//what I left on:
+	//This function at present doesn't account for various potential shifts, it seems.
+	//Particularly in the uinit_boxes != 0 part. Once I fix that, I just need to make sure
+	//the reinit function handles stuff correctly and I'll be set! I'll just do some testing
+	//and then reconnect the console with the additional commands and reworked original commands
+	//and the big patch will be done!
+	//After that I can finally stop developing this tool for a while and shift back to the cam (which 
+	//I assume will be quite easy to get up (assuming also that I'm careful not to apply excessive voltage
+	//to it again...)
+
+	werase(console);
+	div_reinit(input, new_div);
+	if (!input->cool) {
+		for (int i = input->offset; i < min(input->div, input->offset + max_boxes()); i++) {
+			enbox(*input, console, i);
+		}
+	}
+	else {
+		for (int i = 0; i < min(input->div, input->offset + max_boxes()); i++) {
+			cool_enbox(*input, console, i);
+		}
+	}
+	if (input->uinit_boxes == 0) {
+		//simply draw the visible values
+		for (int i = input->offset; i < min(input->div, input->offset + max_boxes()); i++) {
+				bprint(convert_to_base(input->val[i], input->base), *input, console, i);
+		}
+	}
+	else if (input->div - input->uinit_boxes == 0) {//if we don't check for this special case,
+		//the code that follows, which uses print_pos, will possibly have unintented behaviour
+		for (int i = input->offset; i < min(input->div, input->offset + max_boxes()); i++) {
+				bprint("NO VALUE", *input, console, i);
+		}
+
+	} 
+	else { 
+		//The way this is handled could be too complex. for simpler ideas
+		//for potential future reworks, see the new_div < input->div section
+		//of the div_reinit function (untested at time of writing...)
+		struct p_range uinit_boxes;
+		struct p_range vis_boxes;
+		int switches = 0; //Number of times the for loop should switch between printing uinit'd and init'd boxes
+		int mode = 0; //Current printing mode. 0 for uinit, 1 for init
+		int nexts = 0; //Next switch index
+		int prevs = input->offset; //Last switch index
+
+		uinit_boxes.lo_bound = input->print_pos; //Inclusive
+		uinit_boxes.hi_bound = (input->print_pos + input->uinit_boxes - 1) % input->div;		
+		vis_boxes.lo_bound = input->offset;
+		vis_boxes.hi_bound = min(input->offset + max_boxes(), input->div);
+
+		if (is_in_range(input->print_pos, vis_boxes, *input)) {
+			switches++;
+		}
+		if (is_in_range(input->print_pos + input->uinit_boxes + 1, vis_boxes, *input)) {
+			switches++;
+		}
+		if (is_in_range(vis_boxes.lo_bound, uinit_boxes, *input))
+			mode = 0; //Start with uinit boxes
+		else
+			mode = 1; //Start with init boxes
+		nexts = next_switch(mode, uinit_boxes, vis_boxes, *input);
+		for (int k = 0; k < switches + 1; k++) {
+			if (mode) {
+				for(int i = prevs; i < nexts; i++) {
+					bprint(convert_to_base(input->val[i], input->base), *input, console, i);
+				}	
+			}
+			else {
+				for (int i = prevs; i < nexts; i++) {
+					bprint("NO VALUE", *input, console, i);
+				}
+			}
+			mode = !mode;
+			prevs = nexts;
+			nexts = next_switch(mode, uinit_boxes, vis_boxes, *input);
+		}
+	}
+
+}
+int next_switch(int mode, struct p_range uinit_boxes, struct p_range vis_boxes, struct div_disp input) {
+	//Calling this function more times than there are switches results in undefined
+	//behaviour due to return values possibly being outside visible range.
+	
+	if (mode) //We are finding the switch init -> uinit
+		return min(uinit_boxes.lo_bound,  vis_boxes.hi_bound); 
+	else //We are finding the switch uinit -> init
+		return min(uinit_boxes.hi_bound + 1, vis_boxes.hi_bound);
+}
+int mulmin(int argc, ...) //argc does not include itself in the count
+{
+	va_list args;
+	int tmin; //Temporary minimum
+	int temp; //For storing next arg
+
+	va_start(args, argc);
+	tmin = va_arg(args, int);
+	
+	for (int i = 0; i < argc - 1; i++) {
+		temp = va_arg(args, int);
+		if (temp < tmin)
+			tmin = temp;
+	}
+	va_end(args);
+	return tmin;
+}
+int is_in_range(int num, struct p_range range, struct div_disp input)
+{
+	//Checks assuming bounds inclusive
+	if ((num - range.lo_bound) % input.div > (range.hi_bound - range.lo_bound) % input.div)
+		return 0;
+	return 1;
+}
+int is_uinit(int box_no, struct div_disp input)
+{
+	struct p_range uinit_boxes();
+	//Stopped here. This still doesn't take into account the possibility that
+	//the init'd boxes are surrounded by uinit_boxes. Particularly because of the 
+	//1st condition...
+	if (box_no >= input.print_pos && box_no - input.print_pos < input.uinit_boxes)
+		return 1;
+	return 0;
+}
+int get_p_box_no(struct div_disp input)
+{
+	//gets number of printable boxes on right terminal
+	struct p_range temp = get_p_boxes_range(input);
+	return temp.hi_bound - temp.lo_bound + 1;
 }
 void enbox(struct div_disp boxes, WINDOW *console, int box_no)
 {
@@ -314,9 +454,74 @@ void cool_enbox(struct div_disp boxes, WINDOW *console, int box_no)
 		mvwaddstr(console, get_box_y(boxes, box_no) + BOX_HEIGHT - 1, get_box_x(boxes, box_no) + i, bs);
 	}
 }
-void free_stuff(struct div_disp *input) {
+void free_stuff(struct div_disp *input) 
+{
+	free(input->val);
 }
-struct div_disp div_reinit(struct div_disp *input, int new_div) {
+void div_reinit(struct div_disp *input, int new_div) 
+{
+	if (new_div > input->div) {
+		input->uinit_boxes += new_div - input->div; //mark new boxes as uninitialized
+		input->div = new_div;
+		div_realloc(input, new_div);
+	}
+	if (new_div < input->div) {
+
+		if (input->print_pos > new_div) {
+			input->print_pos = 0; //if we shrink past the current printpos, we start at beginning
+		}
+		if (new_div > input->print_pos) {
+			input->uinit_boxes += new_div - input->div;
+		}
+		if (new_div < input->print_pos) {
+			int sub = 0; //how many uinit_boxes to subtract
+			struct p_range uinit_boxes;
+			struct p_range d_range; //lol... range of boxes to be destroyed
+			uinit_boxes.lo_bound = input->print_pos;
+			uinit_boxes.hi_bound = (input->print_pos + input->uinit_boxes - 1) % input->div;
+			d_range.lo_bound = new_div;
+			d_range.hi_bound = input->div;
+			
+			if (uinit_boxes.lo_bound <= uinit_boxes.hi_bound) {
+				log_error("uinit_boxes.lo_bound <= uinit_boxes.hi_bound");
+				sub += uinit_boxes.hi_bound > d_range.lo_bound
+					? uinit_boxes.hi_bound - d_range.lo_bound + 1 
+					: 0;
+			}
+			else {
+				log_error("uinit_boxes.lo_bound > uinit_boxes.hi_bound");
+				sub += uinit_boxes.hi_bound > d_range.lo_bound
+					? uinit_boxes.hi_bound - d_range.lo_bound + 1
+					: 0;
+				sub += d_range.hi_bound - uinit_boxes.lo_bound;
+			}
+			if (sub > input->uinit_boxes || sub > input->div - new_div) {
+				log_error("Shrinked (shrunk?) number of uinit_boxes to be subbed\n");
+				sub = min(input->uinit_boxes, input->div - new_div);
+			}
+			input->uinit_boxes -= sub;
+		}
+		input->div = new_div;
+		div_realloc(input, new_div);
+	}
+
+}
+void shift_val(struct div_disp *input, int shift_by)
+{
+	uint8_t temp[input->div];
+	memcpy(temp, input->val, input->div);
+	for (int i = 0; i < input->div; i++) {
+		input->val[i] = temp[(i + shift_by) % input->div];
+	}
+}
+//Yeah yeah implementing functions that have little to do with this library
+//in particular seems like bad practice...
+int min(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+int max(int a, int b) {
+	return (a > b) ? a : b;
 }
 void log_error(char *format, ...) 
 {

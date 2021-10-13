@@ -19,7 +19,6 @@
 
 WINDOW *console1_box;
 WINDOW *console2_box;
-
 WINDOW *console1;
 WINDOW *console2;
 
@@ -31,7 +30,8 @@ void exit_prep();
 void exit_properly_SIGINT();
 void exit_properly_SIGSEGV();
 
-int main() {
+int main() 
+{
 	//error logging
 	char *current_dir = getcwd(NULL, 0);
 	char *errfile_path = (char *) calloc((strlen(current_dir) + 11), sizeof(char));

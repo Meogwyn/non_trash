@@ -7,16 +7,18 @@
 #define BOX_HEIGHT 4
 #define BOX_WIDTH 10
 
+#define DIV_DISP_BLOCKSIZE 64
+
 struct div_disp {
-	unsigned int div; //amount of divisions
-	unsigned int print_pos; //the box_no we're printing to
-	unsigned int offset; //for scrolling. Represents box to be printed at top left
-	unsigned int uinit_boxes; //number of uninitialized boxes remaining. 
-	unsigned int base : 2; //base of byte representations
-	unsigned int cool : 1;
+	int div; //amount of divisions
+	int print_pos; //the box_no we're printing to
+	int offset; //for scrolling. Represents box to be printed at top left
+	int uinit_boxes; //number of uninitialized boxes remaining. 
+	int shift; //in order to keep track of shifting. We wouldn't need this if I didn't have NO VALUE bytes
+	int base : 2; //base of byte representations
+	int cool : 1;
 
 	uint8_t *val; //stores values of received bytes in unconverted form.
-	
 };
 struct consoles {
 	WINDOW *console1;
@@ -47,10 +49,6 @@ struct p_range {
 
 void add_div_boxes(struct div_disp input, WINDOW *console, int n);
 void remove_div_boxes(struct div_disp input, WINDOW *console, int n);
-void redraw_div_boxes(); //To be made general enough to be useful for both 
-	     //handling the interrupt and changing the number of div boxes 
-	     //the latter should be the more complex one as it also involves changing 
-	     //the array
 
 
 struct consoles init_curses();
@@ -58,15 +56,25 @@ WINDOW *create_window_box(int height, int width, int starty, int startx);
 WINDOW *create_window_nobox(int height, int width, int starty, int startx);
 void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t byte);//-
 char *convert_to_base(uint8_t byte, int base);
+void div_realloc(struct div_disp *input, int new_div);
 void bprint(char *str, struct div_disp input, WINDOW *console, int box_no);
 char *convert_to_base_two(uint8_t byte);
 struct div_disp create_div_disp(int div);
 void draw_div_boxes(struct div_disp input, WINDOW *console); //+
+void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console);
+int next_switch(int mode, struct p_range uinit_boxes, struct p_range vis_boxes, struct div_disp input);
+int mulmin (int argc, ...);
+int is_in_range(int num, struct p_range range, struct div_disp input);
+int is_uinit(int box_no, struct div_disp input);
+int get_p_box_no(struct div_disp input);
 void change_base(struct div_disp *input);
 void enbox(struct div_disp input, WINDOW *console, int box_no);
 void cool_enbox(struct div_disp input, WINDOW *console, int box_no);
 void free_stuff(struct div_disp *input); //+
-struct div_disp div_reinit(struct div_disp *input, int new_div); //+
+void div_reinit(struct div_disp *input, int new_div); //+
+void copy_shrink_val(struct div_disp *input);
+int min(int a, int b);
+int max(int a, int b);
 void log_error(char *format, ...);
 struct p_range get_p_boxes_range(struct div_disp boxes);
 int check_in_bounds(struct div_disp boxes, int index);
@@ -77,4 +85,4 @@ int get_max_boxes_y();
 int get_max_boxes_x();
 void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes);
 void testy(WINDOW *console, struct div_disp boxes);
-
+void div_redraw(struct div_disp input, int new_div);

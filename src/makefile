@@ -1,10 +1,12 @@
 CFLAGS = -lncurses -Wall -Os
 obj = main.o func.o curses_func.o serial_func.o
 
-.PHONY: clean
+.PHONY: clean mainclean
 
 main:$(obj)
 	cc $(CFLAGS) $(obj) -o main
+mainclean:main
+	-rm -v $(obj) #remove useless object files after compiling
 
 main.o:header.h curses_func.h serial_func.h
 func.o:header.h
