@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <termios.h>
 
-#include "header.h"
 #include "serial_func.h"
 #include "curses_func.h"
 
@@ -97,6 +96,7 @@ int main()
 	
 	struct div_disp boxes;
 	boxes = create_div_disp(10);
+
 	draw_div_boxes(boxes, console2);
 
 	//re-implement whole next section!
@@ -139,7 +139,8 @@ int main()
 			wattron(console1, COLOR_PAIR(2));
 			wattr_on(console1, A_BOLD, NULL);
 			user_input[char_count] = 0;
-			interpret(user_input, console1, serial_port, &boxes);
+			interpret(user_input, console1, serial_port, &boxes, console2);
+			log_error("done interpreting\n");
 			wattr_on(console1, A_BOLD, NULL);
 			wattron(console1, COLOR_PAIR(1));
 

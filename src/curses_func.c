@@ -62,8 +62,6 @@ struct consoles init_curses() {
 
 	wattron(output.console1, COLOR_PAIR(1) | A_BOLD);
 	wattron(output.console2, COLOR_PAIR(3) | A_BOLD);
-	wprintw(output.console1, "Hello, World!\n");
-	wprintw(output.console2, "Hello, World!\n");
 	wrefresh(output.console1);
 	wrefresh(output.console2);
 	return output;
@@ -86,12 +84,11 @@ WINDOW *create_window_nobox(int height, int width, int starty, int startx)
 //Prints a byte in a div box, handling conversion
 void print_div_byte(WINDOW *console, struct div_disp *input, uint8_t a) 
 {
-	log_error("Now trying to print byte %d at print_pos %d\n", a, input->print_pos);
+	log_error("now trying to print byte %d at print_pos %d\n", a, input->print_pos);
 	input->val[input->print_pos] = a;
 	//handles conversion and prints to box
 	if (input->uinit_boxes) {
-		log_error("Initializing box %d. %d uninitialized boxes remaining", input->print_pos, input->uinit_boxes);
-		input->uinit_boxes--; //one less to initialize
+		log_error("initializing box %d. %d uninitialized boxes remaining", input->print_pos, --input->uinit_boxes);
 		bprint("        ", *input, console, input->print_pos); //clear the box
 	}
 	bprint(convert_to_base(a, input->base), *input, console, input->print_pos);	
@@ -134,6 +131,7 @@ char *convert_to_base(uint8_t byte, int base)
 			return output;
 	}
 	log_error("...how did you get here?...\n");
+	log_error("base: %d\n", base);
 	return NULL;
 }
 //Does the actual printing
@@ -249,16 +247,6 @@ void draw_div_boxes(struct div_disp input, WINDOW *console)
 }
 void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console)
 {
-	//what I left on:
-	//This function at present doesn't account for various potential shifts, it seems.
-	//Particularly in the uinit_boxes != 0 part. Once I fix that, I just need to make sure
-	//the reinit function handles stuff correctly and I'll be set! I'll just do some testing
-	//and then reconnect the console with the additional commands and reworked original commands
-	//and the big patch will be done!
-	//After that I can finally stop developing this tool for a while and shift back to the cam (which 
-	//I assume will be quite easy to get up (assuming also that I'm careful not to apply excessive voltage
-	//to it again...)
-
 	werase(console);
 	div_reinit(input, new_div);
 	if (!input->cool) {
@@ -279,6 +267,7 @@ void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console)
 	}
 	else if (input->div - input->uinit_boxes == 0) {//if we don't check for this special case,
 		//the code that follows, which uses print_pos, will possibly have unintented behaviour
+		log_error("all boxes uninitialized\n");
 		for (int i = input->offset; i < min(input->div, input->offset + max_boxes()); i++) {
 				bprint("NO VALUE", *input, console, i);
 		}
@@ -288,6 +277,7 @@ void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console)
 		//The way this is handled could be too complex. for simpler ideas
 		//for potential future reworks, see the new_div < input->div section
 		//of the div_reinit function (untested at time of writing...)
+		log_error("not all boxes uninitialized\n");
 		struct p_range uinit_boxes;
 		struct p_range vis_boxes;
 		int switches = 0; //Number of times the for loop should switch between printing uinit'd and init'd boxes
@@ -313,11 +303,13 @@ void redraw_div_boxes(int new_div, struct div_disp *input, WINDOW *console)
 		nexts = next_switch(mode, uinit_boxes, vis_boxes, *input);
 		for (int k = 0; k < switches + 1; k++) {
 			if (mode) {
+				log_error("printing init boxes\n");
 				for(int i = prevs; i < nexts; i++) {
 					bprint(convert_to_base(input->val[i], input->base), *input, console, i);
 				}	
 			}
 			else {
+				log_error("printing uinit boxes\n");
 				for (int i = prevs; i < nexts; i++) {
 					bprint("NO VALUE", *input, console, i);
 				}
@@ -464,6 +456,10 @@ void div_reinit(struct div_disp *input, int new_div)
 		input->uinit_boxes += new_div - input->div; //mark new boxes as uninitialized
 		input->div = new_div;
 		div_realloc(input, new_div);
+		log_error("readout of enlarged array (up to uinit):\n");
+		for (int i = 0; i < input->div - input->uinit_boxes; i++) {
+			log_error("%d:%d\n", i, input->val[i]);
+		}
 	}
 	if (new_div < input->div) {
 
@@ -528,6 +524,7 @@ void log_error(char *format, ...)
 	va_list args;
 	va_start(args, format);
 	vdprintf(errfile, format, args);
+	fsync(errfile);
 	va_end(args);
 	return;
 }

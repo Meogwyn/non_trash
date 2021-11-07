@@ -15,8 +15,8 @@ struct div_disp {
 	int offset; //for scrolling. Represents box to be printed at top left
 	int uinit_boxes; //number of uninitialized boxes remaining. 
 	int shift; //in order to keep track of shifting. We wouldn't need this if I didn't have NO VALUE bytes
-	int base : 2; //base of byte representations
-	int cool : 1;
+	unsigned int base : 2; //base of byte representations
+	unsigned int cool : 1;
 
 	uint8_t *val; //stores values of received bytes in unconverted form.
 };
@@ -29,6 +29,10 @@ struct consoles {
 struct p_range {
 	int lo_bound;
 	int hi_bound;
+};
+struct args {
+	char **argv;
+	int argc;
 };
 
 //implement "shift" function that allows one to shift the indexes
@@ -50,6 +54,7 @@ struct p_range {
 void add_div_boxes(struct div_disp input, WINDOW *console, int n);
 void remove_div_boxes(struct div_disp input, WINDOW *console, int n);
 
+//---curses_func.c
 
 struct consoles init_curses();
 WINDOW *create_window_box(int height, int width, int starty, int startx);
@@ -83,6 +88,13 @@ int get_box_x(struct div_disp boxes, int box_no);
 int max_boxes();
 int get_max_boxes_y();
 int get_max_boxes_x();
-void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes);
 void testy(WINDOW *console, struct div_disp boxes);
 void div_redraw(struct div_disp input, int new_div);
+
+//---func.c
+
+int check_allowed_char(char c);
+struct args parargs(char *argstr);
+void expandus(char ***argv, int ccount);
+void interpret(char *input, WINDOW *console, int fd, struct div_disp *boxes, WINDOW *console2); //fd for serial port
+void comprint(char *com, char *str, WINDOW *console);
